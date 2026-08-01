@@ -60,7 +60,7 @@ const ANALYZER_ORDER = Object.freeze(
 
 const REQUIRED_FIELDS = ['dimension', 'url', 'hostname', 'score', 'summary', 'findings', 'metadata'];
 
-const DEFAULT_MODEL      = 'llama-3.3-70b-versatile';
+const DEFAULT_MODEL      = 'gpt-5-mini';
 const DEFAULT_MAX_TOKENS = 1200;
 const DEFAULT_TIMEOUT_MS = 180000;   /* 3 minutes per analyzer */
 const DEFAULT_RETRIES    = 3;
@@ -129,9 +129,9 @@ function loadDotEnv() {
 
 function resolveAPIKey(explicit) {
   if (explicit) return explicit;
-  if (process.env.GROQ_API_KEY) return process.env.GROQ_API_KEY;
+  if (process.env.OPENAI_API_KEY) return process.env.OPENAI_API_KEY;
   const env = loadDotEnv();
-  return env.GROQ_API_KEY || null;
+  return env.OPENAI_API_KEY || null;
 }
 
 
@@ -422,9 +422,9 @@ function postLLM({ apiKey, model, system, userMessage, maxTokens, timeoutMs }) {
     });
 
     const req = https.request({
-      hostname: 'api.groq.com',
+      hostname: 'api.openai.com',
       port: 443,
-      path: '/openai/v1/chat/completions',
+      path: '/v1/chat/completions',
       method: 'POST',
       headers: {
         'Authorization': `Bearer ${apiKey}`,
@@ -445,7 +445,7 @@ function postLLM({ apiKey, model, system, userMessage, maxTokens, timeoutMs }) {
         if (res.statusCode !== 200) {
           const err = new AnalyzerError(
             'API_ERROR',
-            `Groq API ${res.statusCode}: ${text.slice(0, 500)}`
+            `OpenAI API ${res.statusCode}: ${text.slice(0, 500)}`
           );
 
           err.statusCode = res.statusCode;
@@ -685,7 +685,7 @@ async function runAnalyzer({ dimension, hostname, url, log, apiKey, model, maxTo
   let response;
 
   /* Prevent Groq TPM burst */ 
-  await new Promise(r => setTimeout(r, 15000));
+  // await new Promise(r => setTimeout(r, 15000));
 
   try {
     response = await callLLMWithRetry({
@@ -754,7 +754,7 @@ async function runAnalyzers({ hostname, url, log, enabled, apiKey, model, maxTok
   apiKey = resolveAPIKey(apiKey);
   if (!apiKey) {
     throw new AnalyzerError(CRITICAL.NO_API_KEY,
-      'GROQ_API_KEY not found in process.env or .env');
+      'OPENAI_API_KEY not found in process.env or .env');
   }
 
   /* Check cache exists */
